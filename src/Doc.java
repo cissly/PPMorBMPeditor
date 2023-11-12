@@ -7,15 +7,9 @@ import java.util.ArrayList;
 
 public class Doc {
 
-    String filePath;
-    public static void main(String[] args)
-    {
-        JFrame ff = new JFrame("aaa");
-        ff.setContentPane(new View().main);
-        ff.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        ff.setSize(500,500);
-        ff.setVisible(true);
-    }
+    private String filePath;
+    private static View v;
+
 
     public boolean Check(String target) // 파일이 유코드인지 확인후 맞다면 true를 반환한다.
     {
@@ -23,7 +17,7 @@ public class Doc {
         else return false;
     }
 
-    public ArrayList<String> lineReader(String path)  { // 라인을 한개씩 읽어 Arraylist에 넣는 작업
+    public String[] lineReader(String path)  { // 라인을 한개씩 읽어 Arraylist에 넣는 작업
         ArrayList<String> result = new ArrayList<>();
         if(!Check(path))
         {
@@ -34,7 +28,6 @@ public class Doc {
             BufferedReader br = new BufferedReader(new FileReader(path));
             String input = br.readLine();
             while (input != null) {
-                // do something...
                 result.add(input);
                 input = br.readLine();
             }
@@ -42,7 +35,17 @@ public class Doc {
         catch(FileNotFoundException e) {}
         catch(IOException e) {}
 
-        return result;
+        return (String[]) result.toArray();
+    }
+
+    public String[][] lineSegement(String[] Paragraph)
+    {
+        int size = Paragraph.length;
+        String[][] result = new String[size][5];
+        for(int i = 0; i < size; i++)
+        {
+            Paragraph.
+        }
     }
 
 
