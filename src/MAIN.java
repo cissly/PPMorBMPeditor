@@ -6,6 +6,7 @@ public class MAIN {
     {
         Doc d = new Doc();
         View v = new View(d);
+        d.addView(v);
         JFrame ff = new JFrame("aaa");
         ff.setContentPane(v.mainF);
         ff.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
