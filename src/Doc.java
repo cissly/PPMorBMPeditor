@@ -30,23 +30,6 @@ class positionNode
 
 
 public class Doc {
-    class stack{
-        private ArrayList<Integer> stackArr = new ArrayList<>();
-        private int top = -1;
-        public void push(int temp)
-        {
-            stackArr.add(temp);
-            ++top;
-        }
-        public int pop()
-        {
-            if(top == -1)
-            {
-                JOptionPane.showMessageDialog(v,"스택의 관리에 오류가 있습니다.");
-            }
-            return stackArr.get(top--);
-        }
-    }
     private static View v;
 
     private String[][] sndarr;
@@ -63,6 +46,7 @@ public class Doc {
     private List<String> flowOpr = List.of(new String[]{"ujp","tjp","fjp"});
     private List<String> operator = new ArrayList<>();
 
+    private Stack<Integer> stack = new Stack<>();
     public Doc()
     {
         operator.addAll(programStruct);
@@ -164,55 +148,215 @@ public class Doc {
         positionNode root = new positionNode();
 
         String result = new String();
-        int i = 0;
+        int pc = 0;
         boolean go = true;
         while(go)
         {
-            if(programStruct.contains(sndarr[i][1]))// 프로그램 구성 명령어 인식 및 처리
+            if(programStruct.contains(sndarr[pc][1]))// 프로그램 구성 명령어 인식 및 처리
             {
-                go = programStructProcess(sndarr[i]);
+                go = programStructProcess(sndarr[pc]);
             }
-            else if (functionOpr.contains(sndarr[i][1]))
+            else if (functionOpr.contains(sndarr[pc][1]))
             {
-                functionOprProcess(sndarr[i]);
+                functionOprProcess(sndarr[pc]);
             }
-            else if (inoutProOpr.contains(sndarr[i][1]))
+            else if (inoutProOpr.contains(sndarr[pc][1]))
             {
 
             }
-            else if (dataMove.contains(sndarr[i][1]))
+            else if (dataMove.contains(sndarr[pc][1]))
             {
-
+                dataMoveProcess(sndarr[pc]);
             }
-            else if (unary.contains(sndarr[i][1]))
+            else if (unary.contains(sndarr[pc][1]))
             {
-
+                unaryProcess(sndarr[pc]);
             }
-            else if (binary.contains(sndarr[i][1]))
+            else if (binary.contains(sndarr[pc][1]))
             {
-
+                binaryProcess(sndarr[pc]);
             }
-            else if (flowOpr.contains(sndarr[i][1]))
+            else if (flowOpr.contains(sndarr[pc][1]))
             {
-                i = flowOprProcess(sndarr[i]);
+                pc = flowOprProcess(sndarr[pc]);
+            }
+            if(pc > 0)
+            {
+                JOptionPane.showConfirmDialog(v.mainF,"오류가 발생하였습니다.");
             }
         }
         return result;
     }
 
-    private int flowOprProcess(String[] strings)
+    private void dataMoveProcess(String[] strings)
+    {
+        switch(strings[1])
+        {
+            case "lod":
+
+                break;
+            case "lda":
+                break;
+            case "ldc":
+                break;
+            case "str":
+                break;
+            case "ldi":
+                break;
+            case "sti":
+                break;
+        }
+    }
+
+    private void unaryProcess(String[] strings)// 단항 연산자
+    {
+        switch(strings[1])
+        {
+            case "not":
+                if(stack.pop() == -1) stack.push(0);
+                else if(stack.pop() == 0) stack.push(-1);
+                break;
+            case "neg":
+                stack.push(-stack.pop());
+                break;
+            case "inc":
+                stack.push(stack.pop()+1);
+                break;
+            case "dec":
+                stack.push(stack.pop()-1);
+                break;
+            case "dup":
+                stack.push(stack.peek());
+                break;
+        }
+    }
+
+    private void binaryProcess(String[] strings) //이항 연산자
+    {
+        int first = stack.pop();
+        int second = stack.pop();
+        switch(strings[1])
+        {
+            case "add":
+                stack.push(second + first);
+                break;
+            case "sub":
+                stack.push(second - first);
+                break;
+            case "mult":
+                stack.push(second * first);
+                break;
+            case "div":
+                stack.push(second / first);
+                break;
+            case "mod":
+                stack.push(second % first);
+                break;
+            case "gt":
+                if(first < second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "lt":
+                if(first > second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "ge":
+                if(first <= second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "le":
+                if(first >= second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "eq":
+                if(first == second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "ne":
+                if(first != second)
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "and":
+                if(first == second & (first==-1))
+                {
+                    stack.push(-1);
+                }
+                else
+                {
+                    stack.push(0);
+                }
+                break;
+            case "or":
+                if(first == 0 & second == 0)
+                {
+                    stack.push(0);
+                }
+                else
+                {
+                    stack.push(-1);
+                }
+                break;
+            case "swp":
+                stack.push(first);
+                stack.push(second);
+                break;
+        }
+    }
+
+    private int flowOprProcess(String[] strings) //흐름 제어 명령어 처리함수
     {
         switch(strings[1])
         {
             case "ujp":
                 return labelMap.get(strings[2]);
-            case "bgn":
-                if()
-            case "sym":
+            case "tjp":
+                if(stack.pop() == -1 )
+                    return labelMap.get(strings[2]);
+            case "fjp":
+                if(stack.pop() == 0 )
+                    return labelMap.get(strings[2]);
         }
+        return -1;
     }
 
-    private boolean programStructProcess(String[] strings) {
+    private boolean programStructProcess(String[] strings) //프로그램 구성 명령어 처리함수
+    {
         switch(strings[1])
         {
             case "nop":
@@ -231,7 +375,8 @@ public class Doc {
         return true;
     }
 
-    private void functionOprProcess(String[] strings) {
+    private void functionOprProcess(String[] strings) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
+    {
         switch(strings[1])
         {
             case "proc":
