@@ -1,12 +1,52 @@
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
-public class Doc {
+class positionNode
+{
+    private positionNode prevNode;
+    private int nowLine;
+    private positionNode nextNode;
 
-    private String filePath;
+    public positionNode(positionNode prev, int line)
+    {
+        prevNode = prev;
+        nowLine = line;
+    }
+
+    public positionNode()
+    {
+
+    }
+    public void next(positionNode next)
+    {
+        nextNode = next;
+    }
+}
+
+
+
+public class Doc {
+    class stack{
+        private ArrayList<Integer> stackArr = new ArrayList<>();
+        private int top = -1;
+        public void push(int temp)
+        {
+            stackArr.add(temp);
+            ++top;
+        }
+        public int pop()
+        {
+            if(top == -1)
+            {
+                JOptionPane.showMessageDialog(v,"스택의 관리에 오류가 있습니다.");
+            }
+            return stackArr.get(top--);
+        }
+    }
     private static View v;
 
     private String[][] sndarr;
@@ -121,18 +161,20 @@ public class Doc {
 
     public String process() // 명령어의 종류를 인식하고 분류하여 작동시키는 함수
     {
+        positionNode root = new positionNode();
+
         String result = new String();
         int i = 0;
         boolean go = true;
         while(go)
         {
-            if(programStruct.contains(sndarr[i][1]))
+            if(programStruct.contains(sndarr[i][1]))// 프로그램 구성 명령어 인식 및 처리
             {
-
+                go = programStructProcess(sndarr[i]);
             }
             else if (functionOpr.contains(sndarr[i][1]))
             {
-                functionOprprocess(sndarr[i]);
+                functionOprProcess(sndarr[i]);
             }
             else if (inoutProOpr.contains(sndarr[i][1]))
             {
@@ -152,13 +194,44 @@ public class Doc {
             }
             else if (flowOpr.contains(sndarr[i][1]))
             {
-
+                i = flowOprProcess(sndarr[i]);
             }
         }
         return result;
     }
 
-    private void functionOprprocess(String[] strings) {
+    private int flowOprProcess(String[] strings)
+    {
+        switch(strings[1])
+        {
+            case "ujp":
+                return labelMap.get(strings[2]);
+            case "bgn":
+                if()
+            case "sym":
+        }
+    }
+
+    private boolean programStructProcess(String[] strings) {
+        switch(strings[1])
+        {
+            case "nop":
+                //아무것도 안하기
+                break;
+            case "bgn":
+                int temp = Integer.parseInt(strings[2]);
+                v.blockAdd(temp);
+                break;
+            case "sym":
+                //실제로는 사용되지 않고 인간의 이해를 돕는 코드
+                break;
+            case "end"://어셈블리 프로그램의 끝을 나타내는 코드
+                return false;
+        }
+        return true;
+    }
+
+    private void functionOprProcess(String[] strings) {
         switch(strings[1])
         {
             case "proc":

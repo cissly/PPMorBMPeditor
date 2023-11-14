@@ -20,7 +20,6 @@ public class View {
     private JLabel tagCode = new JLabel("U-Code");
     private JLabel tagStack = new JLabel("Stack");
     private JLabel tagResult = new JLabel("Result");
-
     private JButton oneStep = new JButton("한단계씩 실행");
     private JButton outPut= new JButton("출력");
     private JButton Start = new JButton("실행");
@@ -110,7 +109,7 @@ public class View {
     }
     public void stackAdd()
     {
-
+            //model.addRow(temp);
     }
 
     public void blockAdd(int size)
