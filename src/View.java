@@ -105,7 +105,6 @@ public class View {
         {
             model.addRow(data[i]);
         }
-
     }
     public void stackAdd()
     {
@@ -122,5 +121,14 @@ public class View {
         }
 
     }
+    public void blockDel(int size)
+    {
+        for(int i = 0; i < size; i++)
+        {
+            blockmodel.removeRow(blockmodel.getRowCount());
+        }
+
+    }
+
 }
 

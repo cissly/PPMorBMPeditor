@@ -9,6 +9,7 @@ class positionNode
 {
     private positionNode prevNode;
     private int nowLine;
+    private int varNum;
     private positionNode nextNode;
 
     public positionNode(positionNode prev, int line)
@@ -21,13 +22,51 @@ class positionNode
     {
 
     }
+
+    public void setVarNum(int varNum) {
+        this.varNum = varNum;
+    }
+
+    public int getVarNum() {
+        return varNum;
+    }
+
+    public positionNode getPrevNode() {
+        return prevNode;
+    }
+
     public void next(positionNode next)
     {
         nextNode = next;
     }
+
+    public void delNext()
+    {
+        nextNode = null;
+    }
 }
 
+class Pair {
+    private int block;
+    private int data;
 
+    public Pair(int x) {
+        this.block = x;
+    }
+
+    public void set(int x)
+    {
+        this.data = x;
+    }
+
+    public int getBlock(){
+        return block;
+    }
+
+    public int getData(){
+        return data;
+    }
+}
 
 public class Doc {
     private static View v;
@@ -47,6 +86,8 @@ public class Doc {
     private List<String> operator = new ArrayList<>();
 
     private Stack<Integer> stack = new Stack<>();
+    private positionNode now = new positionNode();
+    private ArrayList<Pair> blocks = new ArrayList<>();
     public Doc()
     {
         operator.addAll(programStruct);
@@ -158,11 +199,7 @@ public class Doc {
             }
             else if (functionOpr.contains(sndarr[pc][1]))
             {
-                functionOprProcess(sndarr[pc]);
-            }
-            else if (inoutProOpr.contains(sndarr[pc][1]))
-            {
-
+                functionOprProcess(sndarr[pc],pc);
             }
             else if (dataMove.contains(sndarr[pc][1]))
             {
@@ -375,17 +412,26 @@ public class Doc {
         return true;
     }
 
-    private void functionOprProcess(String[] strings) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
+    private void functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
     {
         switch(strings[1])
         {
             case "proc":
                 int temp = Integer.parseInt(strings[2]);
                 v.blockAdd(temp);
+                now.setVarNum(temp);
                 break;
             case "ret":
+                v.blockDel(now.getVarNum());
+                now = now.getPrevNode();
+                now.delNext();
                 break;
             case "push":
+                break;
+            case "call":
+                positionNode node = new positionNode(now,pc);
+                now.next(node);
+                now = node;
                 break;
         }
     }
