@@ -12,6 +12,14 @@ class positionNode
     private int varNum;
     private positionNode nextNode;
 
+    public void setNowLine(int a)
+    {
+        nowLine = a;
+    }
+    public int getNowLine()
+    {
+        return nowLine;
+    }
     public positionNode(positionNode prev, int line)
     {
         prevNode = prev;
@@ -46,17 +54,20 @@ class positionNode
     }
 }
 
-class Pair {
+class Triple {
     private int block;
+    private int offset;
     private int data;
 
-    public Pair(int x) {
-        this.block = x;
+    public Triple(int b, int o, int data) {
+        this.block = b;
+        this.offset = o;
+        this.data = data;
     }
 
-    public void set(int x)
+    public int getOffset()
     {
-        this.data = x;
+        return offset;
     }
 
     public int getBlock(){
@@ -87,7 +98,8 @@ public class Doc {
 
     private Stack<Integer> stack = new Stack<>();
     private positionNode now = new positionNode();
-    private ArrayList<Pair> blocks = new ArrayList<>();
+    private ArrayList<Triple> blocks = new ArrayList<>();
+
     public Doc()
     {
         operator.addAll(programStruct);
@@ -152,7 +164,7 @@ public class Doc {
             String[] temp = sub.split(" ");
 
             try{
-                int k = oprUse.get(temp[0]);
+                int k = oprUse.get(temp[0]); //명령어의 사용회수를 체크하는 맵에 추가
                 oprUse.replace(temp[0],++k);
             }
             catch (NullPointerException e)
@@ -186,7 +198,6 @@ public class Doc {
 
     public String process() // 명령어의 종류를 인식하고 분류하여 작동시키는 함수
     {
-        positionNode root = new positionNode();
 
         String result = new String();
         int pc = 0;
@@ -196,47 +207,64 @@ public class Doc {
             if(programStruct.contains(sndarr[pc][1]))// 프로그램 구성 명령어 인식 및 처리
             {
                 go = programStructProcess(sndarr[pc]);
+                pc++;
             }
             else if (functionOpr.contains(sndarr[pc][1]))
             {
-                functionOprProcess(sndarr[pc],pc);
+                pc = functionOprProcess(sndarr[pc],pc);
             }
             else if (dataMove.contains(sndarr[pc][1]))
             {
                 dataMoveProcess(sndarr[pc]);
+                pc++;
             }
             else if (unary.contains(sndarr[pc][1]))
             {
                 unaryProcess(sndarr[pc]);
+                pc++;
             }
             else if (binary.contains(sndarr[pc][1]))
             {
                 binaryProcess(sndarr[pc]);
+                pc++;
             }
             else if (flowOpr.contains(sndarr[pc][1]))
             {
                 pc = flowOprProcess(sndarr[pc]);
             }
-            if(pc > 0)
+            if(pc < 0)
             {
                 JOptionPane.showConfirmDialog(v.mainF,"오류가 발생하였습니다.");
+                return null;
             }
+
         }
         return result;
     }
 
     private void dataMoveProcess(String[] strings)
     {
+        int temp;
+        int block;
+        int offset;
         switch(strings[1])
         {
             case "lod":
 
                 break;
             case "lda":
+
                 break;
             case "ldc":
+                temp = Integer.parseInt(strings[2]);
+                stack.push(temp);
                 break;
             case "str":
+                temp = stack.pop();
+                block = Integer.parseInt(strings[2]);
+                offset = Integer.parseInt(strings[3]);
+                Triple p = new Triple(block,offset,temp);
+                blocks.add(p);
                 break;
             case "ldi":
                 break;
@@ -412,7 +440,7 @@ public class Doc {
         return true;
     }
 
-    private void functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
+    private int functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
     {
         switch(strings[1])
         {
@@ -420,19 +448,26 @@ public class Doc {
                 int temp = Integer.parseInt(strings[2]);
                 v.blockAdd(temp);
                 now.setVarNum(temp);
-                break;
+                return pc+1;
             case "ret":
                 v.blockDel(now.getVarNum());
                 now = now.getPrevNode();
                 now.delNext();
-                break;
+                temp = now.getNowLine();
+                temp++;
+                return temp;
+            case "ldp":// 함수 호출 준비 명령 하는일 설정 없음
+                return pc+1;
             case "push":
                 break;
             case "call":
                 positionNode node = new positionNode(now,pc);
                 now.next(node);
                 now = node;
-                break;
+                now.setNowLine(pc);
+                int newpc = labelMap.get(strings[2]);
+                return newpc;
         }
+        return pc;
     }
 }

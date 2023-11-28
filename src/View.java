@@ -15,10 +15,12 @@ public class View {
     private JScrollPane block;
     private JScrollPane code;
     private JScrollPane stack= new JScrollPane();
+    private JScrollPane mStack= new JScrollPane();
     private JScrollPane result= new JScrollPane();
     private JLabel tagblock = new JLabel("BLOCK");
     private JLabel tagCode = new JLabel("U-Code");
-    private JLabel tagStack = new JLabel("Stack");
+    private JLabel tagStack = new JLabel("CPU-Stack");
+    private JLabel tagMStack = new JLabel("Memory-Stack");
     private JLabel tagResult = new JLabel("Result");
     private JButton oneStep = new JButton("한단계씩 실행");
     private JButton outPut= new JButton("출력");
@@ -59,15 +61,17 @@ public class View {
         gbAdd(tagblock,0 ,0, 1, 1,0.2,0.03);
         gbAdd(block,0,1,1,5,0.2,1);
         gbAdd(tagCode,1 ,0, 1, 1,0.7,0.03);
-        gbAdd(tagStack, 2,0, 1,1, 0.3,0.03);
+        gbAdd(tagStack, 2,0, 1,1, 0.15,0.03);
+        gbAdd(tagMStack, 3,0, 1,1, 0.15,0.03);
         gbAdd(code,1 ,1, 1, 1,0.7,0.6);
-        gbAdd(stack, 2,1, 1,1, 0.3,0.6);
+        gbAdd(stack, 2,1, 1,1, 0.15,0.6);
+        gbAdd(mStack, 3,1, 1,1, 0.15,0.6);
         gbAdd(tagResult,1,2,1,1, 0.7,0.03);
         gbAdd(result, 1,3,1,3,0.7,0.09);
-        gbAdd(input, 2,2,1,1,0.3,0.03);
-        gbAdd(outPut, 2,3,1,1,0.3,0.03);
-        gbAdd(Start, 2,4,1,1,0.3,0.03);
-        gbAdd(oneStep, 2,5,1,1,0.3,0.03);
+        gbAdd(input, 2,2,2,1,0.3,0.03);
+        gbAdd(outPut, 2,3,2,1,0.3,0.03);
+        gbAdd(Start, 2,4,2,1,0.3,0.03);
+        gbAdd(oneStep, 2,5,2,1,0.3,0.03);
     }
     public void gbAdd(Component temp, int x, int y, int w, int h, double k, double t) {
 
@@ -101,9 +105,8 @@ public class View {
     }
     private void UCODESet(String[][] data)
     {
-        for(int i = 0; i< data.length; i++)
-        {
-            model.addRow(data[i]);
+        for (String[] datum : data) {
+            model.addRow(datum);
         }
     }
     public void stackAdd()
@@ -119,7 +122,7 @@ public class View {
             String[] temp = {num," "};
             blockmodel.addRow(temp);
         }
-
+        mainF.invalidate();
     }
     public void blockDel(int size)
     {
@@ -127,7 +130,7 @@ public class View {
         {
             blockmodel.removeRow(blockmodel.getRowCount());
         }
-
+        mainF.invalidate();
     }
 
 }
