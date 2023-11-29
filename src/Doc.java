@@ -97,9 +97,13 @@ public class Doc {
     private List<String> operator = new ArrayList<>();
 
     private Stack<Integer> stack = new Stack<>();
+    private Stack<Integer> mstack = new Stack<>();
     private positionNode now = new positionNode();
     private ArrayList<Triple> blocks = new ArrayList<>();
 
+    private boolean oneStep = false;
+
+    private int pc = 0;
     public Doc()
     {
         operator.addAll(programStruct);
@@ -121,6 +125,14 @@ public class Doc {
         else return false;
     }
 
+    public void turnOne()
+    {
+        oneStep = true;
+    }
+    public void turnOneF()
+    {
+        oneStep = false;
+    }
     public String[][] lineReader(String path)  { // 라인을 한개씩 읽어 Arraylist에 넣는 작업
         ArrayList<String> result = new ArrayList<>();
         if(!Check(path))
@@ -200,7 +212,6 @@ public class Doc {
     {
 
         String result = new String();
-        int pc = 0;
         boolean go = true;
         while(go)
         {
@@ -237,6 +248,10 @@ public class Doc {
                 JOptionPane.showConfirmDialog(v.mainF,"오류가 발생하였습니다.");
                 return null;
             }
+            if(oneStep)
+            {
+                go = false;
+            }
 
         }
         return result;
@@ -258,6 +273,7 @@ public class Doc {
             case "ldc":
                 temp = Integer.parseInt(strings[2]);
                 stack.push(temp);
+                v.stackAdd(temp);
                 break;
             case "str":
                 temp = stack.pop();
@@ -265,6 +281,7 @@ public class Doc {
                 offset = Integer.parseInt(strings[3]);
                 Triple p = new Triple(block,offset,temp);
                 blocks.add(p);
+                v.blockAdd(block,offset,temp);
                 break;
             case "ldi":
                 break;
@@ -428,8 +445,6 @@ public class Doc {
                 //아무것도 안하기
                 break;
             case "bgn":
-                int temp = Integer.parseInt(strings[2]);
-                v.blockAdd(temp);
                 break;
             case "sym":
                 //실제로는 사용되지 않고 인간의 이해를 돕는 코드
@@ -446,7 +461,6 @@ public class Doc {
         {
             case "proc":
                 int temp = Integer.parseInt(strings[2]);
-                v.blockAdd(temp);
                 now.setVarNum(temp);
                 return pc+1;
             case "ret":
@@ -459,6 +473,7 @@ public class Doc {
             case "ldp":// 함수 호출 준비 명령 하는일 설정 없음
                 return pc+1;
             case "push":
+                mstack.push(stack.pop());
                 break;
             case "call":
                 positionNode node = new positionNode(now,pc);

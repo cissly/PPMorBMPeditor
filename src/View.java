@@ -28,17 +28,28 @@ public class View {
     private JButton input = new JButton("입력");
     private DefaultTableModel model;
     private DefaultTableModel blockmodel;
+
+    private DefaultTableModel stackmodel;
+
+    private DefaultTableModel stackMmodel;
     private GridBagConstraints c=new GridBagConstraints();
 
     public View(Doc d) {
         String[] header = {"LABEL", "명령어", "인자1", "인자2", "인자3"};
         String[] header1 = {"No.","DATA"};
+        String[] stackhead = {"Data"};
+        stackmodel = new DefaultTableModel(stackhead,0);
+        stackMmodel = new DefaultTableModel(stackhead,0);
         model=new DefaultTableModel(header,0);
+        blockmodel=new DefaultTableModel(header1,0);
         JTable table= new JTable(model);
         code = new JScrollPane(table);
-        blockmodel=new DefaultTableModel(header1,0);
         JTable blocktable = new JTable(blockmodel);
         block = new JScrollPane(blocktable);
+        JTable stacktable= new JTable(stackmodel);
+        stack = new JScrollPane(stacktable);
+        JTable stackMtable= new JTable(stackMmodel);
+        mStack = new JScrollPane(stackMtable);
         document = d;
         mainF = new JPanel();
         mainF.setLayout(new GridBagLayout());
@@ -55,6 +66,14 @@ public class View {
         Start.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                document.turnOneF();
+                document.process();
+            }
+        });
+        oneStep.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                document.turnOne();
                 document.process();
             }
         });
@@ -109,20 +128,26 @@ public class View {
             model.addRow(datum);
         }
     }
-    public void stackAdd()
+    public void stackAdd(int a)
     {
-            //model.addRow(temp);
+        String ab = Integer.toString(a);
+        String[] temp = {ab};
+        stackmodel.addRow(temp);
+        stackmodel.fireTableDataChanged();
     }
 
-    public void blockAdd(int size)
+    public void mstackAdd()
     {
-        for(int i = 0; i < size; i++)
-        {
-            String num =  Integer.toString(i);
-            String[] temp = {num," "};
-            blockmodel.addRow(temp);
-        }
-        mainF.invalidate();
+        //model.addRow(temp);
+    }
+    public void blockAdd(int block, int offset, int a)
+    {
+        String _block =  Integer.toString(block);
+        String _offset =  Integer.toString(offset);
+        String data =  Integer.toString(a);
+        String[] temp = {_block+"/"+_offset,data};
+        blockmodel.addRow(temp);
+        blockmodel.fireTableDataChanged();
     }
     public void blockDel(int size)
     {
@@ -130,8 +155,12 @@ public class View {
         {
             blockmodel.removeRow(blockmodel.getRowCount());
         }
-        mainF.invalidate();
+        blockmodel.fireTableDataChanged();
     }
 
+    public void blockModify(int size)
+    {
+
+    }
 }
 
