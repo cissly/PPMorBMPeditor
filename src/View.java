@@ -15,9 +15,9 @@ public class View {
 
     private JScrollPane block;
     private JScrollPane code;
-    private JScrollPane stack= new JScrollPane();
-    private JScrollPane mStack= new JScrollPane();
-    private JScrollPane result= new JScrollPane();
+    private JScrollPane stack;
+    private JScrollPane mStack;
+    private JScrollPane result;
     private JLabel tagblock = new JLabel("BLOCK");
     private JLabel tagCode = new JLabel("U-Code");
     private JLabel tagStack = new JLabel("CPU-Stack");
@@ -31,9 +31,8 @@ public class View {
     private DefaultTableModel blockmodel;
     private DefaultTableModel stackmodel;
     private DefaultTableModel stackMmodel;
+    private JLabel resultLabel;
     private GridBagConstraints c=new GridBagConstraints();
-
-    private DefaultTableCellRenderer render;
 
     public View(Doc d) {
         String[] header = {"Now","LABEL", "명령어", "인자1", "인자2", "인자3"};
@@ -55,6 +54,8 @@ public class View {
         mainF = new JPanel();
         mainF.setLayout(new GridBagLayout());
         c.fill=GridBagConstraints.BOTH;
+        resultLabel = new JLabel();
+        result = new JScrollPane(resultLabel);
         input.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -63,8 +64,10 @@ public class View {
                 String[][] lindData = document.lineReader(temp);
                 UCODESet(lindData);
                 mainF.invalidate();
+                buttonOn();
             }
         });
+        clear();
         Start.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -152,6 +155,12 @@ public class View {
         stackMmodel.addRow(temp);
         stackMmodel.fireTableDataChanged();
     }
+    public void mstackPopDel()
+    {
+        int a =stackMmodel.getRowCount();
+        stackMmodel.removeRow(a-1);
+        stackMmodel.fireTableDataChanged();
+    }
     public void blockAdd(int block, int offset, int a)
     {
         String _block =  Integer.toString(block);
@@ -198,9 +207,10 @@ public class View {
                 hit++;
                 blockmodel.setValueAt(nul,i,0);
             }
-            else if(blocktemp.substring(0, 1).equals(Integer.toString(block))) {
-                if (blockmodel.getValueAt(i, 0).equals("")) {
+            else if(blocktemp.substring(0, 3).equals((Integer.toString(block)+"/"+Integer.toString(offset)))) {
+                if (blockmodel.getValueAt(blockmodel.getRowCount()-1, 0).equals("")) {
                     blockmodel.removeRow(blockmodel.getRowCount() - 1);
+                    return;
                 }
             }
         }
@@ -227,8 +237,8 @@ public class View {
 
     public Pair blockInAddr(int Addr, int temp)
     {
-        blockmodel.setValueAt(temp,Addr,1);
-        String pos = (String) blockmodel.getValueAt(Addr,0);
+        blockmodel.setValueAt(temp,Addr-1,1);
+        String pos = (String) blockmodel.getValueAt(Addr-1,0);
         String[] spos = pos.split("/");
         return new Pair(Integer.parseInt(spos[0]),Integer.parseInt(spos[1]));
     }
@@ -241,12 +251,26 @@ public class View {
     private void clear()
     {
         document.clear();
+        resultLabel.setText("");
         removeall(codemodel);
         removeall(blockmodel);
         removeall(stackmodel);
         removeall(stackMmodel);
+        buttonOff();
+        outPut.setEnabled(false);
     }
 
+    private void buttonOn()
+    {
+        Start.setEnabled(true);
+        oneStep.setEnabled(true);
+    }
+    public void buttonOff()
+    {
+        Start.setEnabled(false);
+        oneStep.setEnabled(false);
+        outPut.setEnabled(true);
+    }
     private void removeall(DefaultTableModel model)
     {
         for(int i = 0; i < model.getRowCount();)
@@ -254,6 +278,16 @@ public class View {
             model.removeRow(i);
         }
         model.fireTableRowsDeleted(0, model.getRowCount());
+    }
+
+    public void lf()
+    {
+        resultLabel.setText(resultLabel.getText()+"\n");
+    }
+
+    public void write(int data)
+    {
+        resultLabel.setText(resultLabel.getText()+data);
     }
 }
 

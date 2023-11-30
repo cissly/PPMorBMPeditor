@@ -498,9 +498,19 @@ public class Doc {
                 v.blockSet1(Integer.parseInt(strings[3]));
                 break;
             case "sym":
-                v.blockSet(Integer.parseInt(strings[3]),Integer.parseInt(strings[4]),Integer.parseInt(strings[5]));
+                if(mstack.isEmpty()) {
+                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]));
+                }
+                else
+                {
+                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]));
+                    v.blockInput(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]),mstack.peek());
+                    blocks.replace(strings[3]+strings[4],mstack.pop());
+                    v.mstackPopDel();
+                }
                 break;
             case "end"://어셈블리 프로그램의 끝을 나타내는 코드
+                v.buttonOff();
                 return false;
         }
         return true;
@@ -516,7 +526,6 @@ public class Doc {
                 v.blockSet1(Integer.parseInt(strings[3]));
                 return pc+1;
             case "ret":
-                v.blockDel(now.getVarNum());
                 now = now.getPrevNode();
                 now.delNext();
                 temp = now.getNowLine();
@@ -530,17 +539,41 @@ public class Doc {
                 v.mstackAdd(mstack.peek());
                 return pc+1;
             case "call":
+                if(inoutProOpr.contains(strings[3]))
+                {
+                    systemCall(strings[3]);
+                    return pc+1;
+                }
                 positionNode node = new positionNode(now,pc);
+                now.setNowLine(pc);
                 now.next(node);
                 now = node;
-                now.setNowLine(pc);
                 now.setBlockNum(now.getPrevNode().getBlockNum()+1);
-                int newpc = labelMap.get(strings[3]);
-                return newpc;
+                return labelMap.get(strings[3]);
         }
         return pc;
     }
 
+    private void systemCall(String call)
+    {
+        switch (call)
+        {
+            case "lf":
+                v.lf();
+                break;
+            case "write":
+                v.write(mstack.pop());
+                v.mstackPopDel();
+                break;
+            case "read":
+                String temp = JOptionPane.showInputDialog("숫자를 입력하세요");
+                int a = mstack.pop();
+                v.mstackPopDel();
+                Pair dpair = v.blockInAddr(a,Integer.parseInt(temp));
+                blocks.put(""+dpair.getBlock()+dpair.getOffset(),Integer.parseInt(temp));
+                break;
+        }
+    }
     public void clear()
     {
         stack.clear();
