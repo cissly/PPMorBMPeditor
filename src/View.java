@@ -1,5 +1,6 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -26,23 +27,23 @@ public class View {
     private JButton outPut= new JButton("출력");
     private JButton Start = new JButton("실행");
     private JButton input = new JButton("입력");
-    private DefaultTableModel model;
+    private DefaultTableModel codemodel;
     private DefaultTableModel blockmodel;
-
     private DefaultTableModel stackmodel;
-
     private DefaultTableModel stackMmodel;
     private GridBagConstraints c=new GridBagConstraints();
 
+    private DefaultTableCellRenderer render;
+
     public View(Doc d) {
-        String[] header = {"LABEL", "명령어", "인자1", "인자2", "인자3"};
+        String[] header = {"Now","LABEL", "명령어", "인자1", "인자2", "인자3"};
         String[] header1 = {"No.","DATA"};
         String[] stackhead = {"Data"};
         stackmodel = new DefaultTableModel(stackhead,0);
         stackMmodel = new DefaultTableModel(stackhead,0);
-        model=new DefaultTableModel(header,0);
+        codemodel=new DefaultTableModel(header,0);
         blockmodel=new DefaultTableModel(header1,0);
-        JTable table= new JTable(model);
+        JTable table= new JTable(codemodel);
         code = new JScrollPane(table);
         JTable blocktable = new JTable(blockmodel);
         block = new JScrollPane(blocktable);
@@ -57,6 +58,7 @@ public class View {
         input.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                clear();
                 String temp = load();
                 String[][] lindData = document.lineReader(temp);
                 UCODESet(lindData);
@@ -125,7 +127,7 @@ public class View {
     private void UCODESet(String[][] data)
     {
         for (String[] datum : data) {
-            model.addRow(datum);
+            codemodel.addRow(datum);
         }
     }
     public void stackAdd(int a)
@@ -136,9 +138,19 @@ public class View {
         stackmodel.fireTableDataChanged();
     }
 
-    public void mstackAdd()
+    public void stackPopDel()
     {
-        //model.addRow(temp);
+        int a =stackmodel.getRowCount();
+        stackmodel.removeRow(a-1);
+        stackmodel.fireTableDataChanged();
+    }
+
+    public void mstackAdd(int a)
+    {
+        String ab = Integer.toString(a);
+        String[] temp = {ab};
+        stackMmodel.addRow(temp);
+        stackMmodel.fireTableDataChanged();
     }
     public void blockAdd(int block, int offset, int a)
     {
@@ -153,14 +165,95 @@ public class View {
     {
         for(int i = 0; i < size; i++)
         {
-            blockmodel.removeRow(blockmodel.getRowCount());
+            blockmodel.removeRow(blockmodel.getRowCount()-1);
         }
         blockmodel.fireTableDataChanged();
     }
 
-    public void blockModify(int size)
-    {
 
+    public void blockInput(int block, int offset, int data) {
+        for (int i = 0; i < blockmodel.getRowCount(); i++)
+        {
+            String temp = Integer.toString(block) + "/" + Integer.toString(offset);
+            String blocktemp = (String) blockmodel.getValueAt(i, 0);
+            if(temp.equals(blocktemp))
+            {
+                temp = Integer.toString(data);
+                blockmodel.setValueAt(temp,i,1);
+            }
+        }
+    }
+
+    public void blockSet(int block, int offset, int size)
+    {
+        int j = offset;
+        int hit = 0;
+        for (int i = 0;(hit < size) && (i < blockmodel.getRowCount()); i++)
+        {
+            String nul = "";
+            String blocktemp = (String) blockmodel.getValueAt(i, 0);
+            if(nul.equals(blocktemp))
+            {
+                nul = Integer.toString(block) + "/" + Integer.toString(j++);
+                hit++;
+                blockmodel.setValueAt(nul,i,0);
+            }
+            else if(blocktemp.substring(0, 1).equals(Integer.toString(block))) {
+                if (blockmodel.getValueAt(i, 0).equals("")) {
+                    blockmodel.removeRow(blockmodel.getRowCount() - 1);
+                }
+            }
+        }
+    }
+    public void blockSet1(int size) {
+        for (int i = 0; i < size; i++) {
+            String[] temp = {""};
+            blockmodel.addRow(temp);
+        }
+    }
+
+    public int blockFind(int block, int offset)
+    {
+        for(int i = 0; i < blockmodel.getRowCount(); i++)
+        {
+            String temp = (String) blockmodel.getValueAt(i,0);
+            if(temp.equals(block+"/"+offset))
+            {
+                return i+1;
+            }
+        }
+        return -1;
+    }
+
+    public Pair blockInAddr(int Addr, int temp)
+    {
+        blockmodel.setValueAt(temp,Addr,1);
+        String pos = (String) blockmodel.getValueAt(Addr,0);
+        String[] spos = pos.split("/");
+        return new Pair(Integer.parseInt(spos[0]),Integer.parseInt(spos[1]));
+    }
+    public void nowPos(int prev,int now)
+    {
+        codemodel.setValueAt("",prev,0);
+        codemodel.setValueAt("NOW",now,0);
+        codemodel.fireTableDataChanged();
+    }
+    private void clear()
+    {
+        document.clear();
+        removeall(codemodel);
+        removeall(blockmodel);
+        removeall(stackmodel);
+        removeall(stackMmodel);
+    }
+
+    private void removeall(DefaultTableModel model)
+    {
+        for(int i = 0; i < model.getRowCount();)
+        {
+            model.removeRow(i);
+        }
+        model.fireTableRowsDeleted(0, model.getRowCount());
     }
 }
 

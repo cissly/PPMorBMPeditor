@@ -10,6 +10,7 @@ class positionNode
     private positionNode prevNode;
     private int nowLine;
     private int varNum;
+    private int blockNum;
     private positionNode nextNode;
 
     public void setNowLine(int a)
@@ -52,17 +53,18 @@ class positionNode
     {
         nextNode = null;
     }
+    public void setBlockNum(int a){blockNum = a; }
+    public int getBlockNum(){return blockNum;}
 }
 
-class Triple {
+class Pair {
     private int block;
     private int offset;
-    private int data;
 
-    public Triple(int b, int o, int data) {
+    public Pair(int b, int o)
+    {
         this.block = b;
         this.offset = o;
-        this.data = data;
     }
 
     public int getOffset()
@@ -72,10 +74,6 @@ class Triple {
 
     public int getBlock(){
         return block;
-    }
-
-    public int getData(){
-        return data;
     }
 }
 
@@ -91,7 +89,7 @@ public class Doc {
     private List<String> functionOpr= List.of(new String[]{"proc","ret","ldp","push","call"});
     private List<String> inoutProOpr = List.of(new String[]{"read", "write", "lf"});
     private List<String> dataMove = List.of(new String[]{"lod","lda","ldc","str","ldi","sti"});
-    private List<String> unary = List.of(new String[]{"not","neg","ind","dec","dup"});
+    private List<String> unary = List.of(new String[]{"not","neg","inc","dec","dup"});
     private List<String> binary = List.of(new String[]{"add","sub","mult","div","mod","gt","lt","ge","le","eq","ne","and","or","swp"});
     private List<String> flowOpr = List.of(new String[]{"ujp","tjp","fjp"});
     private List<String> operator = new ArrayList<>();
@@ -99,7 +97,7 @@ public class Doc {
     private Stack<Integer> stack = new Stack<>();
     private Stack<Integer> mstack = new Stack<>();
     private positionNode now = new positionNode();
-    private ArrayList<Triple> blocks = new ArrayList<>();
+    private HashMap<String,Integer> blocks = new HashMap<String, Integer>();
 
     private boolean oneStep = false;
 
@@ -113,6 +111,7 @@ public class Doc {
         operator.addAll(unary);
         operator.addAll(binary);
         operator.addAll(flowOpr);
+        now.setBlockNum(1);
     }
 
     public void addView (View temp)
@@ -160,7 +159,7 @@ public class Doc {
     public String[][] lineSegement(String[] Paragraph) // 라인별로 하나하나씩 분석및 분류하여 2차원배열로 작성하는 함수
     {
         int size = Paragraph.length;
-        String[][] result = new String[size][5];
+        String[][] result = new String[size][6];
 
         for(int i = 0; i < size; i++)
         {
@@ -168,24 +167,22 @@ public class Doc {
             label = label.trim();
             if(!label.equals(""))
             {
-                result[i][0] = label;
+                result[i][1] = label;
                 labelMap.put(label,i);
             }
 
             String sub = Paragraph[i].substring(11);
             String[] temp = sub.split(" ");
 
-            try{
-                int k = oprUse.get(temp[0]); //명령어의 사용회수를 체크하는 맵에 추가
-                oprUse.replace(temp[0],++k);
-            }
-            catch (NullPointerException e)
-            {
-                oprUse.put(temp[0],0);
-            }
+
             for(int j = 0; (j < 4) && (j < temp.length); j++)
             {
-                if((j == 0) && !isOpr(temp[j]))
+                if((j == 0 )&&temp[j].equals("bgn"))
+                {
+                    pc = i;
+                    result[i][0] = "NOW";
+                }
+                if((j == 0) && !isOpr(temp[j])) // 명령어 자리에 명령어가 있지 않음
                 {
                     return null;
                 }
@@ -193,7 +190,7 @@ public class Doc {
                 {
                     break;
                 }
-                result[i][j+1] = temp[j];
+                result[i][j+2] = temp[j];
             }
         }
         return result;
@@ -203,6 +200,7 @@ public class Doc {
     {
         if(operator.contains(temp))
         {
+
             return  true;
         }
         return false;
@@ -210,36 +208,45 @@ public class Doc {
 
     public String process() // 명령어의 종류를 인식하고 분류하여 작동시키는 함수
     {
-
+        int prev = pc;
         String result = new String();
         boolean go = true;
         while(go)
         {
-            if(programStruct.contains(sndarr[pc][1]))// 프로그램 구성 명령어 인식 및 처리
+            try{
+                int k = oprUse.get(sndarr[pc][2]); //명령어의 사용회수를 체크하는 맵에 추가
+                oprUse.replace(sndarr[pc][2],++k);
+            }
+            catch (NullPointerException e)
+            {
+                oprUse.put(sndarr[pc][2],0);
+            }
+
+            if(programStruct.contains(sndarr[pc][2]))// 프로그램 구성 명령어 인식 및 처리
             {
                 go = programStructProcess(sndarr[pc]);
                 pc++;
             }
-            else if (functionOpr.contains(sndarr[pc][1]))
+            else if (functionOpr.contains(sndarr[pc][2]))
             {
                 pc = functionOprProcess(sndarr[pc],pc);
             }
-            else if (dataMove.contains(sndarr[pc][1]))
+            else if (dataMove.contains(sndarr[pc][2]))
             {
                 dataMoveProcess(sndarr[pc]);
                 pc++;
             }
-            else if (unary.contains(sndarr[pc][1]))
+            else if (unary.contains(sndarr[pc][2]))
             {
                 unaryProcess(sndarr[pc]);
                 pc++;
             }
-            else if (binary.contains(sndarr[pc][1]))
+            else if (binary.contains(sndarr[pc][2]))
             {
                 binaryProcess(sndarr[pc]);
                 pc++;
             }
-            else if (flowOpr.contains(sndarr[pc][1]))
+            else if (flowOpr.contains(sndarr[pc][2]))
             {
                 pc = flowOprProcess(sndarr[pc]);
             }
@@ -254,6 +261,7 @@ public class Doc {
             }
 
         }
+        v.nowPos(prev,pc);
         return result;
     }
 
@@ -262,53 +270,71 @@ public class Doc {
         int temp;
         int block;
         int offset;
-        switch(strings[1])
+        switch(strings[2])
         {
             case "lod":
-
+                temp = blocks.get(strings[3]+strings[4]);
+                stack.push(temp);
+                v.stackAdd(temp);
                 break;
             case "lda":
-
+                block = Integer.parseInt(strings[3]);
+                offset = Integer.parseInt(strings[4]);
+                stack.push(v.blockFind(block,offset));
+                v.stackAdd(stack.peek());
                 break;
             case "ldc":
-                temp = Integer.parseInt(strings[2]);
+                temp = Integer.parseInt(strings[3]);
                 stack.push(temp);
                 v.stackAdd(temp);
                 break;
             case "str":
+                block = Integer.parseInt(strings[3]);
+                offset = Integer.parseInt(strings[4]);
                 temp = stack.pop();
-                block = Integer.parseInt(strings[2]);
-                offset = Integer.parseInt(strings[3]);
-                Triple p = new Triple(block,offset,temp);
-                blocks.add(p);
-                v.blockAdd(block,offset,temp);
+                v.stackPopDel();
+                String inputkey = strings[3] + strings[4];
+                blocks.put(inputkey,temp);
+                v.blockInput(block,offset,temp);
                 break;
             case "ldi":
                 break;
             case "sti":
+                int data = stack.pop();
+                int Addr = stack.pop();
+                Pair pos = v.blockInAddr(Addr,data);
                 break;
         }
     }
 
     private void unaryProcess(String[] strings)// 단항 연산자
     {
-        switch(strings[1])
+        switch(strings[2])
         {
             case "not":
                 if(stack.pop() == -1) stack.push(0);
                 else if(stack.pop() == 0) stack.push(-1);
+                v.stackPopDel();
+                v.stackAdd(stack.peek());
                 break;
             case "neg":
                 stack.push(-stack.pop());
+                v.stackPopDel();
+                v.stackAdd(stack.peek());
                 break;
             case "inc":
                 stack.push(stack.pop()+1);
+                v.stackPopDel();
+                v.stackAdd(stack.peek());
                 break;
             case "dec":
                 stack.push(stack.pop()-1);
+                v.stackPopDel();
+                v.stackAdd(stack.peek());
                 break;
             case "dup":
                 stack.push(stack.peek());
+                v.stackAdd(stack.peek());
                 break;
         }
     }
@@ -316,23 +342,30 @@ public class Doc {
     private void binaryProcess(String[] strings) //이항 연산자
     {
         int first = stack.pop();
+        v.stackPopDel();
         int second = stack.pop();
-        switch(strings[1])
+        v.stackPopDel();
+        switch(strings[2])
         {
             case "add":
                 stack.push(second + first);
+                v.stackAdd(stack.peek());
                 break;
             case "sub":
                 stack.push(second - first);
+                v.stackAdd(stack.peek());
                 break;
             case "mult":
                 stack.push(second * first);
+                v.stackAdd(stack.peek());
                 break;
             case "div":
                 stack.push(second / first);
+                v.stackAdd(stack.peek());
                 break;
             case "mod":
                 stack.push(second % first);
+                v.stackAdd(stack.peek());
                 break;
             case "gt":
                 if(first < second)
@@ -343,6 +376,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "lt":
                 if(first > second)
@@ -353,6 +387,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "ge":
                 if(first <= second)
@@ -363,6 +398,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "le":
                 if(first >= second)
@@ -373,6 +409,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "eq":
                 if(first == second)
@@ -383,6 +420,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "ne":
                 if(first != second)
@@ -393,6 +431,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "and":
                 if(first == second & (first==-1))
@@ -403,6 +442,7 @@ public class Doc {
                 {
                     stack.push(0);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "or":
                 if(first == 0 & second == 0)
@@ -413,41 +453,52 @@ public class Doc {
                 {
                     stack.push(-1);
                 }
+                v.stackAdd(stack.peek());
                 break;
             case "swp":
                 stack.push(first);
+                v.stackAdd(stack.peek());
                 stack.push(second);
+                v.stackAdd(stack.peek());
                 break;
         }
     }
 
     private int flowOprProcess(String[] strings) //흐름 제어 명령어 처리함수
     {
-        switch(strings[1])
+        switch(strings[2])
         {
             case "ujp":
-                return labelMap.get(strings[2]);
+                return labelMap.get(strings[3]);
             case "tjp":
+                v.stackPopDel();
                 if(stack.pop() == -1 )
-                    return labelMap.get(strings[2]);
+
+                    return labelMap.get(strings[3]);
             case "fjp":
+                v.stackPopDel();
                 if(stack.pop() == 0 )
-                    return labelMap.get(strings[2]);
+                    return labelMap.get(strings[3]);
+                else
+                {
+                    return pc+1;
+                }
         }
         return -1;
     }
 
     private boolean programStructProcess(String[] strings) //프로그램 구성 명령어 처리함수
     {
-        switch(strings[1])
+        switch(strings[2])
         {
             case "nop":
                 //아무것도 안하기
                 break;
             case "bgn":
+                v.blockSet1(Integer.parseInt(strings[3]));
                 break;
             case "sym":
-                //실제로는 사용되지 않고 인간의 이해를 돕는 코드
+                v.blockSet(Integer.parseInt(strings[3]),Integer.parseInt(strings[4]),Integer.parseInt(strings[5]));
                 break;
             case "end"://어셈블리 프로그램의 끝을 나타내는 코드
                 return false;
@@ -457,11 +508,12 @@ public class Doc {
 
     private int functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
     {
-        switch(strings[1])
+        switch(strings[2])
         {
             case "proc":
-                int temp = Integer.parseInt(strings[2]);
+                int temp = Integer.parseInt(strings[3]);
                 now.setVarNum(temp);
+                v.blockSet1(Integer.parseInt(strings[3]));
                 return pc+1;
             case "ret":
                 v.blockDel(now.getVarNum());
@@ -474,15 +526,27 @@ public class Doc {
                 return pc+1;
             case "push":
                 mstack.push(stack.pop());
-                break;
+                v.stackPopDel();
+                v.mstackAdd(mstack.peek());
+                return pc+1;
             case "call":
                 positionNode node = new positionNode(now,pc);
                 now.next(node);
                 now = node;
                 now.setNowLine(pc);
-                int newpc = labelMap.get(strings[2]);
+                now.setBlockNum(now.getPrevNode().getBlockNum()+1);
+                int newpc = labelMap.get(strings[3]);
                 return newpc;
         }
         return pc;
+    }
+
+    public void clear()
+    {
+        stack.clear();
+       mstack.clear();
+       now = new positionNode();
+       now.setBlockNum(1);
+       blocks.clear();
     }
 }
