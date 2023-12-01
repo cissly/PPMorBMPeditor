@@ -1,15 +1,14 @@
 import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
+//함수가 호출될경우 돌아갈값과 변수들의 저장을 설정하기 위해 만들어진 클래스 positionNode
+// 각인자의 getter setter가 만들어져 있습니다.
 class positionNode
 {
     private positionNode prevNode;
     private int nowLine;
-    private int varNum;
+    private String Labelname;
     private int blockNum;
     private positionNode nextNode;
 
@@ -29,15 +28,14 @@ class positionNode
 
     public positionNode()
     {
-
     }
 
-    public void setVarNum(int varNum) {
-        this.varNum = varNum;
+    public void setLabelname(String temp) {
+        this.Labelname = temp;
     }
 
-    public int getVarNum() {
-        return varNum;
+    public String getLabelname() {
+        return Labelname;
     }
 
     public positionNode getPrevNode() {
@@ -57,6 +55,8 @@ class positionNode
     public int getBlockNum(){return blockNum;}
 }
 
+//한번에 2개의 값을 돌려받기 위해 만들어진 클래스
+// Getter만 만들어져 있습니다.
 class Pair {
     private int block;
     private int offset;
@@ -91,15 +91,17 @@ public class Doc {
     private List<String> dataMove = List.of(new String[]{"lod","lda","ldc","str","ldi","sti"});
     private List<String> unary = List.of(new String[]{"not","neg","inc","dec","dup"});
     private List<String> binary = List.of(new String[]{"add","sub","mult","div","mod","gt","lt","ge","le","eq","ne","and","or","swp"});
-    private List<String> flowOpr = List.of(new String[]{"ujp","tjp","fjp"});
+    private List<String> flowOpr = List.of(new String[]{"ujp","tjp","fjp"}); // 흐름제어 명령어 모음
     private List<String> operator = new ArrayList<>();
 
-    private Stack<Integer> stack = new Stack<>();
-    private Stack<Integer> mstack = new Stack<>();
-    private positionNode now = new positionNode();
-    private HashMap<String,Integer> blocks = new HashMap<String, Integer>();
+    private Stack<Integer> stack = new Stack<>(); // CPU스택
+    private Stack<Integer> mstack = new Stack<>(); // 메모리스택
+    private positionNode now = new positionNode(); // 함수의 정보를 나타내는 포지션노드
+    private HashMap<String,Integer> blocks = new HashMap<String, Integer>(); // 블럭
 
-    private boolean oneStep = false;
+    private ArrayList<String> labellist = new ArrayList<>(); // 어떤 라벨이 실제로 사용되었는지 보여주는 배열
+    private boolean oneStep = false; //한단계씩 진행할것인지 알려주는 변수
+    private String output = "";
 
     private int pc = 0;
     public Doc()
@@ -120,19 +122,19 @@ public class Doc {
     }
     public boolean Check(String target) // 파일이 유코드인지 확인후 맞다면 true를 반환한다.
     {
-        if((target.length()-4)==target.indexOf(".uco")) return true;
-        else return false;
+        return (target.length() - 4) == target.indexOf(".uco");
     }
 
     public void turnOne()
     {
         oneStep = true;
-    }
+    } //한단계씩 진행 켜기
     public void turnOneF()
     {
         oneStep = false;
-    }
-    public String[][] lineReader(String path)  { // 라인을 한개씩 읽어 Arraylist에 넣는 작업
+    } //한단계씩 진행 끄기
+    public String[][] lineReader(String path)  // 라인을 한개씩 읽어 Arraylist에 넣는 작업
+    {
         ArrayList<String> result = new ArrayList<>();
         if(!Check(path))
         {
@@ -165,7 +167,7 @@ public class Doc {
         {
             String label = Paragraph[i].substring(0,11);
             label = label.trim();
-            if(!label.equals(""))
+            if(!label.isEmpty())
             {
                 result[i][1] = label;
                 labelMap.put(label,i);
@@ -198,18 +200,99 @@ public class Doc {
 
     private boolean isOpr(String temp)
     {
-        if(operator.contains(temp))
-        {
+        return operator.contains(temp);
+    } // 명령어인지 구분하는 함수
 
-            return  true;
-        }
-        return false;
+    public void clear() // 새로운 코드를 읽기전 이전 정보를 비우는 함수
+    {
+        stack.clear();
+        mstack.clear();
+        now = new positionNode();
+        now.setBlockNum(1);
+        blocks.clear();
     }
 
+    private int popStackAndDel()  // CPU 스택의 Pop 및 뷰에 반영
+    {
+        int value = stack.pop();
+        v.stackPopDel();
+        return value;
+    }
+
+    private int popMStackAndDel() // 메모리 스택의 Pop 및 뷰에 반영
+    {
+        int value = mstack.pop();
+        v.mstackPopDel();
+        return value;
+    }
+
+    private void pushAndAddToView(int value)  //CPU 스택에 Push 및 뷰에 반영
+    {
+        stack.push(value);
+        v.stackAdd(value);
+    }
+
+    private void mpushAndAddToView(int i)  //메모리 스택에 Push 및 뷰에 반영
+    {
+        mstack.push(i);
+        v.mstackAdd(i);
+    }
+
+    private void blockRetunRemove(String labelname) //함수를 리턴할때 그 함수안에 만들어진 블럭들을 모두 삭제하는 함수 및 뷰에 반영
+    {
+        ArrayList<String> keyArray = new ArrayList<>(blocks.keySet());
+        for (String key : keyArray) {
+            int leng = now.getLabelname().length();
+            if(key.length() < leng)
+            {
+                continue;
+            }
+            String a= key.substring(key.length()-leng);
+            if (a.equals(labelname))
+            {
+                blocks.remove(key);
+            }
+        }
+    }
+
+    public void resultMaker()
+    {
+        String result = "-------------------result--------------------";
+        String count = "------------------oprCount-------------------";
+        String end = "---------------------END---------------------";
+        ArrayList<String> opr = new ArrayList<>(oprUse.keySet());
+        ArrayList<String> resultArray = new ArrayList<>();
+        String filePath = "output.txt";
+        for (String s : opr) {
+            resultArray.add(String.format("%-6s : %-4d", s, oprUse.get(s)));
+        }
+
+        try {
+            FileWriter fileWriter = new FileWriter(filePath);
+
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+            bufferedWriter.write(result);
+
+            bufferedWriter.write(output);
+
+            bufferedWriter.write(count);
+
+            for(String s : resultArray)
+            {
+                bufferedWriter.write(s);
+            }
+            bufferedWriter.write(end);
+            bufferedWriter.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     public String process() // 명령어의 종류를 인식하고 분류하여 작동시키는 함수
     {
         int prev = pc;
-        String result = new String();
+        String result = null;
         boolean go = true;
         while(go)
         {
@@ -227,35 +310,35 @@ public class Doc {
                 go = programStructProcess(sndarr[pc]);
                 pc++;
             }
-            else if (functionOpr.contains(sndarr[pc][2]))
+            else if (functionOpr.contains(sndarr[pc][2]))// 함수정의 및 호출 명령어 인식후 처리함수에 넘기기
             {
                 pc = functionOprProcess(sndarr[pc],pc);
             }
-            else if (dataMove.contains(sndarr[pc][2]))
+            else if (dataMove.contains(sndarr[pc][2]))// 데이터 이동 명령어 인식후 처리함수에 넘기기
             {
                 dataMoveProcess(sndarr[pc]);
                 pc++;
             }
-            else if (unary.contains(sndarr[pc][2]))
+            else if (unary.contains(sndarr[pc][2])) // 단항연산자 명령어 인식후 처리함수에 넘기기
             {
                 unaryProcess(sndarr[pc]);
                 pc++;
             }
-            else if (binary.contains(sndarr[pc][2]))
+            else if (binary.contains(sndarr[pc][2])) // 이항연산자 명령어 인식후 처리함수에 넘기기
             {
                 binaryProcess(sndarr[pc]);
                 pc++;
             }
-            else if (flowOpr.contains(sndarr[pc][2]))
+            else if (flowOpr.contains(sndarr[pc][2])) //흐름제어 명령어 인식후 처리함수에 넘기기
             {
                 pc = flowOprProcess(sndarr[pc]);
             }
-            if(pc < 0)
+            if(pc < 0) // 오류를 처리하기위해 만들어진 if문
             {
                 JOptionPane.showConfirmDialog(v.mainF,"오류가 발생하였습니다.");
                 return null;
             }
-            if(oneStep)
+            if(oneStep) // 한단계식 실행을 시킬때 중지시킬 if문
             {
                 go = false;
             }
@@ -265,7 +348,7 @@ public class Doc {
         return result;
     }
 
-    private void dataMoveProcess(String[] strings)
+    private void dataMoveProcess(String[] strings)// 데이터 이동 연산자 처리함수
     {
         int temp;
         int block;
@@ -273,193 +356,181 @@ public class Doc {
         switch(strings[2])
         {
             case "lod":
-                temp = blocks.get(strings[3]+strings[4]);
-                stack.push(temp);
-                v.stackAdd(temp);
+                try {
+                    temp = blocks.get(strings[3] + strings[4] + now.getLabelname());
+                }
+                catch(NullPointerException e)
+                {
+                    temp = blocks.get(strings[3] + strings[4] + "null");
+                }
+                pushAndAddToView(temp);
                 break;
             case "lda":
                 block = Integer.parseInt(strings[3]);
                 offset = Integer.parseInt(strings[4]);
-                stack.push(v.blockFind(block,offset));
-                v.stackAdd(stack.peek());
+                pushAndAddToView(v.blockFind(block,offset, now.getLabelname()));
                 break;
             case "ldc":
                 temp = Integer.parseInt(strings[3]);
-                stack.push(temp);
-                v.stackAdd(temp);
+                pushAndAddToView(temp);
                 break;
             case "str":
                 block = Integer.parseInt(strings[3]);
                 offset = Integer.parseInt(strings[4]);
-                temp = stack.pop();
-                v.stackPopDel();
-                String inputkey = strings[3] + strings[4];
+                temp = popStackAndDel();
+                String inputkey = strings[3] + strings[4] + now.getLabelname();
                 blocks.put(inputkey,temp);
-                v.blockInput(block,offset,temp);
+                v.blockInput(block,offset,temp, now.getLabelname());
                 break;
             case "ldi":
+                int a = popStackAndDel();
+                a = v.blockIndex(a);
+                pushAndAddToView(a);
                 break;
             case "sti":
-                int data = stack.pop();
-                int Addr = stack.pop();
-                Pair pos = v.blockInAddr(Addr,data);
+                int data = popStackAndDel();
+                int Addr = popStackAndDel();
+                Pair pos = v.blockInAddr(Addr,data,now.getLabelname());
+                if(blocks.containsKey(""+pos.getBlock()+ pos.getOffset()+now.getLabelname()))
+                {
+                    blocks.replace(""+pos.getBlock()+ pos.getOffset()+now
+                            .getLabelname(),data);
+                }
+                else
+                {
+                    blocks.put(""+pos.getBlock()+ pos.getOffset()+now.getLabelname(),data);
+                }
                 break;
         }
     }
 
-    private void unaryProcess(String[] strings)// 단항 연산자
+    private void unaryProcess(String[] strings)// 단항 연산자 처리함수
     {
         switch(strings[2])
         {
             case "not":
-                if(stack.pop() == -1) stack.push(0);
-                else if(stack.pop() == 0) stack.push(-1);
-                v.stackPopDel();
-                v.stackAdd(stack.peek());
+                if(popStackAndDel() == -1) pushAndAddToView(0);
+                else if(popStackAndDel() == 0) pushAndAddToView(-1);
                 break;
             case "neg":
-                stack.push(-stack.pop());
-                v.stackPopDel();
-                v.stackAdd(stack.peek());
+                pushAndAddToView(-popStackAndDel());
                 break;
             case "inc":
-                stack.push(stack.pop()+1);
-                v.stackPopDel();
-                v.stackAdd(stack.peek());
+                pushAndAddToView(popStackAndDel()+1);
                 break;
             case "dec":
-                stack.push(stack.pop()-1);
-                v.stackPopDel();
-                v.stackAdd(stack.peek());
+                pushAndAddToView(popStackAndDel()-1);
                 break;
             case "dup":
-                stack.push(stack.peek());
-                v.stackAdd(stack.peek());
+                pushAndAddToView(stack.peek());
                 break;
         }
     }
 
-    private void binaryProcess(String[] strings) //이항 연산자
+    private void binaryProcess(String[] strings) //이항 연산자 처리함수
     {
-        int first = stack.pop();
-        v.stackPopDel();
-        int second = stack.pop();
-        v.stackPopDel();
+        int first = popStackAndDel();
+        int second = popStackAndDel();
         switch(strings[2])
         {
             case "add":
-                stack.push(second + first);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(second + first);
                 break;
             case "sub":
-                stack.push(second - first);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(second - first);
                 break;
             case "mult":
-                stack.push(second * first);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(second * first);
                 break;
             case "div":
-                stack.push(second / first);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(second / first);
                 break;
             case "mod":
-                stack.push(second % first);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(second % first);
                 break;
             case "gt":
                 if(first < second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "lt":
                 if(first > second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "ge":
                 if(first <= second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "le":
                 if(first >= second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "eq":
                 if(first == second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "ne":
                 if(first != second)
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "and":
                 if(first == second & (first==-1))
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
                 else
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "or":
                 if(first == 0 & second == 0)
                 {
-                    stack.push(0);
+                    pushAndAddToView(0);
                 }
                 else
                 {
-                    stack.push(-1);
+                    pushAndAddToView(-1);
                 }
-                v.stackAdd(stack.peek());
                 break;
             case "swp":
-                stack.push(first);
-                v.stackAdd(stack.peek());
-                stack.push(second);
-                v.stackAdd(stack.peek());
+                pushAndAddToView(first);
+                pushAndAddToView(second);
                 break;
         }
     }
@@ -471,18 +542,14 @@ public class Doc {
             case "ujp":
                 return labelMap.get(strings[3]);
             case "tjp":
-                v.stackPopDel();
-                if(stack.pop() == -1 )
-
+                if(popStackAndDel() == -1 )
                     return labelMap.get(strings[3]);
             case "fjp":
-                v.stackPopDel();
-                if(stack.pop() == 0 )
+                if(popStackAndDel() == 0 )
                     return labelMap.get(strings[3]);
                 else
-                {
                     return pc+1;
-                }
+
         }
         return -1;
     }
@@ -499,14 +566,13 @@ public class Doc {
                 break;
             case "sym":
                 if(mstack.isEmpty()) {
-                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]));
+                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]),now.getLabelname());
                 }
                 else
                 {
-                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]));
-                    v.blockInput(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]),mstack.peek());
-                    blocks.replace(strings[3]+strings[4],mstack.pop());
-                    v.mstackPopDel();
+                    v.blockSet(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]), Integer.parseInt(strings[5]),now.getLabelname());
+                    v.blockInput(Integer.parseInt(strings[3]), Integer.parseInt(strings[4]),mstack.peek(),now.getLabelname());
+                    blocks.put(strings[3]+strings[4]+now.getLabelname(),popMStackAndDel());
                 }
                 break;
             case "end"://어셈블리 프로그램의 끝을 나타내는 코드
@@ -516,16 +582,17 @@ public class Doc {
         return true;
     }
 
-    private int functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수 미완성!!!!!!!!!!!!!!!!!
+    private int functionOprProcess(String[] strings, int pc) // 함수 정의 및 호출 명령어 처리함수
     {
+        int temp;
         switch(strings[2])
         {
             case "proc":
-                int temp = Integer.parseInt(strings[3]);
-                now.setVarNum(temp);
                 v.blockSet1(Integer.parseInt(strings[3]));
                 return pc+1;
             case "ret":
+                v.blockDel(now.getLabelname());
+                blockRetunRemove(now.getLabelname());
                 now = now.getPrevNode();
                 now.delNext();
                 temp = now.getNowLine();
@@ -534,9 +601,7 @@ public class Doc {
             case "ldp":// 함수 호출 준비 명령 하는일 설정 없음
                 return pc+1;
             case "push":
-                mstack.push(stack.pop());
-                v.stackPopDel();
-                v.mstackAdd(mstack.peek());
+                mpushAndAddToView(popStackAndDel());
                 return pc+1;
             case "call":
                 if(inoutProOpr.contains(strings[3]))
@@ -544,8 +609,17 @@ public class Doc {
                     systemCall(strings[3]);
                     return pc+1;
                 }
-                positionNode node = new positionNode(now,pc);
+                String Labelname = strings[3];
+                int i = 1;
+                while(labellist.contains(Labelname))
+                {
+                    Labelname = strings[3] + i;
+                    i++;
+                }
                 now.setNowLine(pc);
+                positionNode node = new positionNode(now,pc);
+                node.setLabelname(Labelname);
+                labellist.add(Labelname);
                 now.next(node);
                 now = node;
                 now.setBlockNum(now.getPrevNode().getBlockNum()+1);
@@ -554,7 +628,7 @@ public class Doc {
         return pc;
     }
 
-    private void systemCall(String call)
+    private void systemCall(String call) // 입출력처리 함수
     {
         switch (call)
         {
@@ -562,24 +636,16 @@ public class Doc {
                 v.lf();
                 break;
             case "write":
-                v.write(mstack.pop());
-                v.mstackPopDel();
+                int out =popMStackAndDel();
+                v.write(out);
+                output += out;
                 break;
             case "read":
                 String temp = JOptionPane.showInputDialog("숫자를 입력하세요");
-                int a = mstack.pop();
-                v.mstackPopDel();
-                Pair dpair = v.blockInAddr(a,Integer.parseInt(temp));
-                blocks.put(""+dpair.getBlock()+dpair.getOffset(),Integer.parseInt(temp));
+                int a = popMStackAndDel();
+                Pair dpair = v.blockInAddr(a,Integer.parseInt(temp),now.getLabelname());
+                blocks.put(""+dpair.getBlock()+dpair.getOffset()+now.getLabelname(),Integer.parseInt(temp));
                 break;
         }
-    }
-    public void clear()
-    {
-        stack.clear();
-       mstack.clear();
-       now = new positionNode();
-       now.setBlockNum(1);
-       blocks.clear();
     }
 }
