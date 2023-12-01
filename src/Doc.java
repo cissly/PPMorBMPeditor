@@ -257,16 +257,15 @@ public class Doc {
 
     public void resultMaker()
     {
-        String result = "-------------------result--------------------";
-        String count = "------------------oprCount-------------------";
+        String result = "-------------------result--------------------\n";
+        String count = "------------------oprCount-------------------\n";
         String end = "---------------------END---------------------";
         ArrayList<String> opr = new ArrayList<>(oprUse.keySet());
         ArrayList<String> resultArray = new ArrayList<>();
-        String filePath = "output.txt";
         for (String s : opr) {
-            resultArray.add(String.format("%-6s : %-4d", s, oprUse.get(s)));
+            resultArray.add(String.format("%-6s : %-4d \n", s, oprUse.get(s)));
         }
-
+        String filePath = JOptionPane.showInputDialog("저장할 파일의 이름을 입력하세요");
         try {
             FileWriter fileWriter = new FileWriter(filePath);
 
@@ -274,7 +273,7 @@ public class Doc {
 
             bufferedWriter.write(result);
 
-            bufferedWriter.write(output);
+            bufferedWriter.write(output + "\n");
 
             bufferedWriter.write(count);
 
@@ -302,7 +301,7 @@ public class Doc {
             }
             catch (NullPointerException e)
             {
-                oprUse.put(sndarr[pc][2],0);
+                oprUse.put(sndarr[pc][2],1);
             }
 
             if(programStruct.contains(sndarr[pc][2]))// 프로그램 구성 명령어 인식 및 처리
@@ -577,6 +576,7 @@ public class Doc {
                 break;
             case "end"://어셈블리 프로그램의 끝을 나타내는 코드
                 v.buttonOff();
+                pc--;
                 return false;
         }
         return true;

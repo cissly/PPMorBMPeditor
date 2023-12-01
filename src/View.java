@@ -145,7 +145,7 @@ public class View {
         outPut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                document.resultMaker();
             }
         });
     }
